@@ -52,32 +52,35 @@ impl NanoTokenizer {
     }
 
     fn batch_encode(
-        &self,
+        &mut self,
         texts: Vec<String>,
         padding: bool,
         truncation: bool,
         pad_id: u32,
         pad_token: &str,
     ) -> PyResult<Vec<Vec<u32>>> {
-        let mut tokenizer = self.tokenizer.clone();
-
         if padding {
             let mut params = PaddingParams::default();
             params.pad_id = pad_id;
             params.pad_token = pad_token.to_string();
-            tokenizer.with_padding(Some(params));
+            self.tokenizer.with_padding(Some(params));
+        } else {
+            self.tokenizer.with_padding(None);
         }
 
         if truncation {
-            tokenizer.with_truncation(Some(TruncationParams::default()));
+            self.tokenizer.with_truncation(Some(TruncationParams::default()));
+        } else {
+            self.tokenizer.with_truncation(None);
         }
 
-        let encodings = tokenizer
-            .encode_batch(texts, false)
-            .map_err(|e| PyValueError::new_err(e.to_string()))?;
+        let encodings_result = self.tokenizer.encode_batch(texts, false);
 
+        self.tokenizer.with_padding(None);
+        self.tokenizer.with_truncation(None);
+
+        let encodings = encodings_result.map_err(|e| PyValueError::new_err(e.to_string()))?;
         let mut input_ids = Vec::with_capacity(encodings.len());
-
         for encoding in encodings {
             input_ids.push(encoding.get_ids().to_vec());
         }
