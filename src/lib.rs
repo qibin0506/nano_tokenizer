@@ -27,24 +27,24 @@ impl NanoTokenizer {
         self.tokenizer.token_to_id(token)
     }
 
-    fn encode(&self, text: &str, add_special_tokens: bool) -> PyResult<Vec<u32>> {
+    fn encode(&self, text: &str) -> PyResult<Vec<u32>> {
         let encoding = self.tokenizer
-            .encode(text, add_special_tokens)
+            .encode(text, false)
             .map_err(|e| PyValueError::new_err(e.to_string()))?;
         Ok(encoding.get_ids().to_vec())
     }
 
-    fn decode(&self, ids: Vec<u32>, skip_special_tokens: bool) -> PyResult<String> {
+    fn decode(&self, ids: Vec<u32>) -> PyResult<String> {
         self.tokenizer
-            .decode(&ids, skip_special_tokens)
+            .decode(&ids, false)
             .map_err(|e| PyValueError::new_err(e.to_string()))
     }
 
-    fn batch_decode(&self, batch_ids: Vec<Vec<u32>>, skip_special_tokens: bool) -> PyResult<Vec<String>> {
+    fn batch_decode(&self, batch_ids: Vec<Vec<u32>>) -> PyResult<Vec<String>> {
         let mut results = Vec::with_capacity(batch_ids.len());
         for ids in batch_ids {
             let text = self.tokenizer
-                .decode(&ids, skip_special_tokens)
+                .decode(&ids, false)
                 .map_err(|e| PyValueError::new_err(e.to_string()))?;
             results.push(text);
         }
@@ -58,7 +58,7 @@ impl NanoTokenizer {
         truncation: bool,
         pad_id: u32,
         pad_token: &str,
-    ) -> PyResult<(Vec<Vec<u32>>, Vec<Vec<u32>>)> {
+    ) -> PyResult<Vec<Vec<u32>>> {
         let mut tokenizer = self.tokenizer.clone();
 
         if padding {
@@ -77,14 +77,12 @@ impl NanoTokenizer {
             .map_err(|e| PyValueError::new_err(e.to_string()))?;
 
         let mut input_ids = Vec::with_capacity(encodings.len());
-        let mut attention_masks = Vec::with_capacity(encodings.len());
 
         for encoding in encodings {
             input_ids.push(encoding.get_ids().to_vec());
-            attention_masks.push(encoding.get_attention_mask().to_vec());
         }
 
-        Ok((input_ids, attention_masks))
+        Ok(input_ids)
     }
 }
 
