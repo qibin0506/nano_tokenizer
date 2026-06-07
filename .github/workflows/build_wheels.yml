@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+    # 只有打 tag 时才发布到 PyPI，平时 push main 只打包不发布
+    # 比如：git tag v0.1.0 && git push origin v0.1.0
     tags:
       - 'v*'
 
